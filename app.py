@@ -45,9 +45,9 @@ if uploaded_file:
         # Use GPT-4 Turbo to get more details
         prompt = f"Tell me about the sea animal called '{top_class}'. Include its scientific name, whether it is endangered or not, conservation tips if it is endangered, and a few fun facts."
         response = openai.Completion.create(
-            engine="gpt-4-turbo",  # Specify GPT-4 Turbo model
+            engine="gpt-4o-mini",  # Specify GPT-4 Turbo model
             prompt=prompt,
-            max_tokens=200,
+            max_tokens=400,
             temperature=0.5,
         )
         st.write(response.choices[0].text.strip())
