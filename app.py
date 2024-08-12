@@ -1,62 +1,57 @@
-import openai
 import streamlit as st
-from google.cloud import vision
-from google.cloud.vision_v1 import types
-from PIL import Image
+from ibm_watson import VisualRecognitionV3
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+import openai
 import io
 
-# Set up Google Cloud Vision API Client
-vision_client = vision.ImageAnnotatorClient()
+# IBM Watson Visual Recognition credentials
+api_key = st.secrets["ibm_api_key"]
+service_url = st.secrets["ibm_service_url"]
 
-# Set your OpenAI API key (store securely in Streamlit secrets)
+# Set up IBM Watson Visual Recognition
+authenticator = IAMAuthenticator(api_key)
+visual_recognition = VisualRecognitionV3(
+    version='2021-03-31',
+    authenticator=authenticator
+)
+visual_recognition.set_service_url(service_url)
+
+# Set your OpenAI API key
 openai.api_key = st.secrets["openai_api_key"]
 
-st.title("Species Information App (Google Vision + GPT-4o-mini)")
-st.write("Upload an image to get information about the species.")
+st.title('Sea Animal Identifier')
 
-uploaded_file = st.file_uploader("Choose an image...", type="jpg")
+# Upload an image
+uploaded_file = st.file_uploader("Upload an image of a sea animal:", type=["jpg", "jpeg", "png"])
 
-if uploaded_file is not None:
-    img = Image.open(uploaded_file)
-    st.image(img, caption='Uploaded Image.', use_column_width=True)
-    st.write("")
-    st.write("Classifying...")
+if uploaded_file:
+    # Display the image
+    st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
 
-    # Convert the uploaded image to bytes
-    img_byte_arr = io.BytesIO()
-    img.save(img_byte_arr, format='JPEG')
-    img_byte_arr = img_byte_arr.getvalue()
+    # Convert the uploaded file to a binary stream
+    image_binary = uploaded_file.read()
 
-    # Use Google Cloud Vision API to classify the image
-    image = types.Image(content=img_byte_arr)
-    response = vision_client.label_detection(image=image)
-    labels = response.label_annotations
+    # Use IBM Watson to classify the image
+    classes = visual_recognition.classify(
+        images_file=io.BytesIO(image_binary),
+        threshold='0.6'
+    ).get_result()
 
-    if labels:
-        top_label = labels[0].description
-        confidence = labels[0].score
-        st.write(f"Predicted: {top_label} with a confidence of {confidence:.2f}")
+    # Get the top class
+    if classes and 'images' in classes and 'classifiers' in classes['images'][0]:
+        top_class = classes['images'][0]['classifiers'][0]['classes'][0]['class']
+        st.write(f"Identified Sea Animal: {top_class}")
 
-        # Query GPT-4o-mini for species information
-        def get_species_info(species_name):
-            messages = [
-                {"role": "system", "content": "You are an assistant providing detailed information about species."},
-                {"role": "user", "content": (f"Provide concise information about the following species: {species_name}. "
-                                              "Include its scientific name, ocean layer (if applicable), endangered or invasive status, "
-                                              "and tips for conservation if it is endangered. Also, add a few fun facts.")}
-            ]
-
-            response = openai.ChatCompletion.create(
-                model="gpt-4o-mini",  # Use the correct model name
-                messages=messages,
-                max_tokens=400
-            )
-
-            return response.choices[0].message['content'].strip()
-
-        # Get species information
-        species_info = get_species_info(top_label)
-        st.write("\nSpecies Information:")
-        st.write(species_info)
+        # Use GPT-4 Turbo to get more details
+        prompt = f"Tell me about the sea animal called '{top_class}'. Include its scientific name, whether it is endangered or not, conservation tips if it is endangered, and a few fun facts."
+        response = openai.Completion.create(
+            engine="gpt-4-turbo",  # Specify GPT-4 Turbo model
+            prompt=prompt,
+            max_tokens=200,
+            temperature=0.5,
+        )
+        st.write(response.choices[0].text.strip())
     else:
-        st.write("No labels detected. Please try a different image.")
+        st.write("Sorry, I couldn't identify the sea animal in the image.")
+
+st.write("This app uses IBM Watson's Visual Recognition to identify sea animals and OpenAI's GPT-4 Turbo to provide detailed information.")
