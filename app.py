@@ -1,23 +1,13 @@
 import streamlit as st
-from ibm_watson import VisualRecognitionV3
-from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+import requests
 import openai
-import io
 
-# IBM Watson Visual Recognition credentials
-api_key = st.secrets["ibm_api_key"]
-service_url = st.secrets["ibm_service_url"]
-
-# Set up IBM Watson Visual Recognition
-authenticator = IAMAuthenticator(api_key)
-visual_recognition = VisualRecognitionV3(
-    version='2021-03-31',
-    authenticator=authenticator
-)
-visual_recognition.set_service_url(service_url)
+# API credentials
+deepai_api_key = st.secrets["deepai_api_key"]
+openai_api_key = st.secrets["openai_api_key"]
 
 # Set your OpenAI API key
-openai.api_key = st.secrets["openai_api_key"]
+openai.api_key = openai_api_key
 
 st.title('Sea Animal Identifier')
 
@@ -28,30 +18,41 @@ if uploaded_file:
     # Display the image
     st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
 
-    # Convert the uploaded file to a binary stream
-    image_binary = uploaded_file.read()
+    # Send image to DeepAI for recognition
+    response = requests.post(
+        "https://api.deepai.org/api/image-recognition",
+        files={"image": uploaded_file.getvalue()},
+        headers={"api-key": deepai_api_key}
+    )
 
-    # Use IBM Watson to classify the image
-    classes = visual_recognition.classify(
-        images_file=io.BytesIO(image_binary),
-        threshold='0.6'
-    ).get_result()
+    if response.status_code == 200:
+        result = response.json()
+        if 'output' in result and 'objects' in result['output']:
+            objects = result['output']['objects']
+            if objects:
+                top_class = objects[0]['name']
+                st.write(f"Identified Object: {top_class}")
 
-    # Get the top class
-    if classes and 'images' in classes and 'classifiers' in classes['images'][0]:
-        top_class = classes['images'][0]['classifiers'][0]['classes'][0]['class']
-        st.write(f"Identified Sea Animal: {top_class}")
-
-        # Use GPT-4 Turbo to get more details
-        prompt = f"Tell me about the sea animal called '{top_class}'. Include its scientific name, whether it is endangered or not, conservation tips if it is endangered, and a few fun facts."
-        response = openai.Completion.create(
-            engine="gpt-4o-mini",  # Specify GPT-4 Turbo model
-            prompt=prompt,
-            max_tokens=400,
-            temperature=0.5,
-        )
-        st.write(response.choices[0].text.strip())
+                # Use GPT-3.5-turbo to get more details
+                prompt = (f"Tell me about the sea animal called '{top_class}'. Include its scientific name, "
+                          "whether it is endangered or not, conservation tips if it is endangered, and a few fun facts.")
+                
+                gpt_response = openai.ChatCompletion.create(
+                    model="gpt-4o-mini",  # Cheaper model than GPT-4
+                    messages=[
+                        {"role": "system", "content": "You are a marine biologist assistant."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=300,
+                    temperature=0.5,
+                )
+                animal_info = gpt_response['choices'][0]['message']['content']
+                st.write(animal_info)
+            else:
+                st.write("No identifiable objects found.")
+        else:
+            st.write("Sorry, I couldn't identify the objects in the image.")
     else:
-        st.write("Sorry, I couldn't identify the sea animal in the image.")
+        st.write("There was an error processing the image.")
 
-st.write("This app uses IBM Watson's Visual Recognition to identify sea animals and OpenAI's GPT-4 Turbo to provide detailed information.")
+st.write("This app uses DeepAI's image recognition to identify objects in images and OpenAI's GPT-3.5-turbo to provide detailed information.")
