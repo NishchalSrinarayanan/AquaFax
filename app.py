@@ -4,35 +4,39 @@ from PIL import Image
 import requests
 import openai
 
+# Initialize the OpenAI API key
+openai.api_key = st.secrets["openai_api_key"]
+
+# Function to get the formatted Wikipedia page name using ChatGPT
 def get_full_name(sea_animal_name):
     response = openai.ChatCompletion.create(
-        model="gpt-4",  # Specify the correct model
+        model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"Provide the name of this animal with underscores for the wikipedia page for this animal so for example: loggerhead_sea_turtle, because when typed into a wikipedia link without the page, leads to the page."}
+            {"role": "user", "content": f"Provide the name of this animal with underscores for the Wikipedia page, e.g., 'loggerhead_sea_turtle'."},
+            {"role": "assistant", "content": f"The sea animal name is {sea_animal_name}."}
         ],
-        max_tokens=150
+        max_tokens=50
     )
     return response['choices'][0]['message']['content'].strip()
-# Initialize the OpenAI API
-openai.api_key = st.secrets["openai_api_key"]
+
 # Function to get facts from Wikipedia
 def get_wikipedia_summary(wikiname):
     url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{wikiname}"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
-        return data.get('extract')
+        return data.get('extract', "Sorry, no summary available.")
     else:
         return "Sorry, I couldn't find information on this sea animal."
 
-# Function to get additional details using ChatGPT API
+# Function to get additional details using ChatGPT
 def get_chatgpt_details(sea_animal_name):
     response = openai.ChatCompletion.create(
-        model="gpt-4",  # Specify the correct model
+        model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"Provide some interesting facts about {sea_animal_name}. wether it is endangered or not, and if the animal is, some conservation tips for regular middle-class people to do at home. Be specific with the conservation tips."}
+            {"role": "user", "content": f"Provide some interesting facts about {sea_animal_name}, whether it is endangered or not, and specific conservation tips that middle-class people can do at home."}
         ],
         max_tokens=150
     )
@@ -56,14 +60,17 @@ if uploaded_file:
     predictions = classifier(image)
 
     # Get the top prediction and convert it to a lower case name for matching
-    sea_animal = predictions[0]['label'].lower()
+    sea_animal_name = predictions[0]['label'].lower()
 
-    st.write(f"Identified as: **{sea_animal}**")
+    st.write(f"Identified as: **{sea_animal_name}**")
+
+    # Get the Wikipedia-compatible name for the sea animal
     wikiname = get_full_name(sea_animal_name)
+
     # Fetch facts from Wikipedia
     summary = get_wikipedia_summary(wikiname)
     st.write(f"**Wikipedia Summary:** {summary}")
     
     # Fetch additional details using ChatGPT
-    chatgpt_summary = get_chatgpt_details(sea_animal)
+    chatgpt_summary = get_chatgpt_details(sea_animal_name)
     st.write(f"**Additional Details from ChatGPT:** {chatgpt_summary}")
