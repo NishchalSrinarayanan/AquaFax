@@ -35,9 +35,9 @@ def get_chatgpt_details(sea_animal_name):
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"Provide 3 interesting facts about {sea_animal_name}, whether it is endangered or not, and specific conservation tips that middle-class people can do at home. make sure this response does not exceed 150 tokens."}
+            {"role": "user", "content": f"Provide 3 interesting facts about {sea_animal_name}, whether it is endangered or not, and specific conservation tips that middle-class people can do at home. make sure this response does not exceed 300 tokens."}
         ],
-        max_tokens=150
+        max_tokens=300
     )
     return response['choices'][0]['message']['content'].strip()
 
