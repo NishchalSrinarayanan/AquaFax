@@ -1,4 +1,4 @@
-
+import streamlit as st
 from transformers import pipeline
 from PIL import Image
 import requests
