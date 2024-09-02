@@ -3,6 +3,7 @@ from transformers import pipeline
 from PIL import Image
 import requests
 import openai
+import streamlit.components.v1 as components
 
 # Set up OpenAI API key
 openai.api_key = st.secrets["openai_api_key"]
@@ -10,7 +11,7 @@ openai.api_key = st.secrets["openai_api_key"]
 # Functions
 def get_full_name(sea_animal_name):
     response = openai.ChatCompletion.create(
-        model="gpt-4",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": f"Please provide the Wikipedia page name for '{sea_animal_name}' formatted with underscores, so it can be used in the following URL: https://en.wikipedia.org/api/rest_v1/page/summary/. Do not add anything else to your response."}
@@ -41,6 +42,32 @@ def get_chatgpt_details(sea_animal_name):
 
 # Load image classification model
 classifier = pipeline("image-classification", model="google/vit-base-patch16-224")
+
+# Custom HTML for loading animation
+loading_animation_html = """
+<style>
+@keyframes ocean-wave {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+.loader {
+    position: relative;
+    width: 100%;
+    height: 100px;
+    overflow: hidden;
+}
+.loader:before {
+    content: "";
+    position: absolute;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(90deg, #00bfff 25%, transparent 25%, transparent 50%, #00bfff 50%, #00bfff 75%, transparent 75%, transparent);
+    background-size: 50px 100%;
+    animation: ocean-wave 1s linear infinite;
+}
+</style>
+<div class="loader"></div>
+"""
 
 # Streamlit UI
 st.set_page_config(page_title="AquaFax Sea Animal Identifier", layout="wide")
@@ -106,13 +133,16 @@ if uploaded_file:
     sea_animal_name = predictions[0]['label'].lower()
 
     st.sidebar.text("Fetching information...")
-
-    # Display identified sea animal
-    st.markdown(f'<div class="subheader">Identified as: **{sea_animal_name.title()}**</div>', unsafe_allow_html=True)
+    
+    # Show loading animation
+    components.html(loading_animation_html, height=100)
 
     # Fetch the Wikipedia-compatible name and summary
     wikiname = get_full_name(sea_animal_name)
     summary = get_wikipedia_summary(wikiname)
+    
+    # Hide loading animation and show results
+    st.markdown('<div class="subheader">Identified as: **{sea_animal_name.title()}**</div>', unsafe_allow_html=True)
     st.markdown('<div class="summary-box">', unsafe_allow_html=True)
     st.markdown(f'<div class="header">🐟 Animal Summary 🐟</div>', unsafe_allow_html=True)
     st.write(summary)
