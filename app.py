@@ -128,5 +128,4 @@ if uploaded_file:
 else:
     st.info("Upload an image of a sea animal to get started!")
 
-# Footer
-st.markdown('<div class="footer">Powered by Streamlit, Transformers, and OpenAI</div>', unsafe_allow_html=True)
+
