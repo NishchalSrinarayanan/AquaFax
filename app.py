@@ -151,57 +151,60 @@ uploaded_file = st.sidebar.file_uploader("Upload an image of a sea animal", type
 
 col1, col2, col3 = st.sidebar.columns(3)
 
-if col1.button("Process Image", key="process_image"):
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        st.markdown('<div class="image-container">', unsafe_allow_html=True)
-        st.image(image, caption='Uploaded Image', use_column_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+with col1:
+    if st.button("Process Image", key="process_image", help="Classify the uploaded image and get details"):
+        if uploaded_file:
+            image = Image.open(uploaded_file)
+            st.markdown('<div class="image-container">', unsafe_allow_html=True)
+            st.image(image, caption='Uploaded Image', use_column_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        st.sidebar.text("Classifying image...")
-        predictions = classifier(image)
-        sea_animal_name = predictions[0]['label'].lower()
+            st.text("Classifying image...")
+            predictions = classifier(image)
+            sea_animal_name = predictions[0]['label'].lower()
 
-        st.markdown(f'<div class="subheader">Identified as: **{sea_animal_name.title()}**</div>', unsafe_allow_html=True)
-        st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-        st.markdown(f'<div class="header">🐟 Animal Summary 🐟</div>', unsafe_allow_html=True)
-        wikiname = get_full_name(sea_animal_name)
-        summary = get_wikipedia_summary(wikiname)
-        st.write(summary)
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="subheader">Identified as: **{sea_animal_name.title()}**</div>', unsafe_allow_html=True)
+            st.markdown('<div class="summary-box">', unsafe_allow_html=True)
+            st.markdown(f'<div class="header">🐟 Animal Summary 🐟</div>', unsafe_allow_html=True)
+            wikiname = get_full_name(sea_animal_name)
+            summary = get_wikipedia_summary(wikiname)
+            st.write(summary)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        chatgpt_summary = get_chatgpt_details(sea_animal_name)
-        st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-        st.markdown(f'<div class="header">🌍 Additional Details and Conservation Tips 🌍</div>', unsafe_allow_html=True)
-        st.write(chatgpt_summary)
-        st.markdown('</div>', unsafe_allow_html=True)
+            chatgpt_summary = get_chatgpt_details(sea_animal_name)
+            st.markdown('<div class="summary-box">', unsafe_allow_html=True)
+            st.markdown(f'<div class="header">🌍 Additional Details and Conservation Tips 🌍</div>', unsafe_allow_html=True)
+            st.write(chatgpt_summary)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Upload an image of a sea animal to get started!")
 
-    else:
-        st.info("Upload an image of a sea animal to get started!")
+with col2:
+    if st.button("Fetch Animal Summary", key="fetch_summary", help="Fetch the Wikipedia summary of the identified animal"):
+        if uploaded_file:
+            image = Image.open(uploaded_file)
+            predictions = classifier(image)
+            sea_animal_name = predictions[0]['label'].lower()
+            wikiname = get_full_name(sea_animal_name)
+            summary = get_wikipedia_summary(wikiname)
+            st.markdown('<div class="summary-box">', unsafe_allow_html=True)
+            st.markdown(f'<div class="header">🐟 Animal Summary 🐟</div>', unsafe_allow_html=True)
+            st.write(summary)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Upload an image of a sea animal to get started!")
 
-if col2.button("Fetch Wikipedia Summary", key="fetch_summary"):
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        predictions = classifier(image)
-        sea_animal_name = predictions[0]['label'].lower()
-        wikiname = get_full_name(sea_animal_name)
-        summary = get_wikipedia_summary(wikiname)
-        st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-        st.markdown(f'<div class="header">🐟 Animal Summary 🐟</div>', unsafe_allow_html=True)
-        st.write(summary)
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.info("Upload an image of a sea animal to get started!")
+with col3:
+    if st.button("Get Conservation Tips", key="conservation_tips", help="Get conservation tips for the identified animal"):
+        if uploaded_file:
+            image = Image.open(uploaded_file)
+            predictions = classifier(image)
+            sea_animal_name = predictions[0]['label'].lower()
+            chatgpt_summary = get_chatgpt_details(sea_animal_name)
+            st.markdown('<div class="summary-box">', unsafe_allow_html=True)
+            st.markdown(f'<div class="header">🌍 Conservation Tips 🌍</div>', unsafe_allow_html=True)
+            st.write(chatgpt_summary)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Upload an image of a sea animal to get started!")
 
-if col3.button("Get Conservation Tips", key="conservation_tips"):
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        predictions = classifier(image)
-        sea_animal_name = predictions[0]['label'].lower()
-        chatgpt_summary = get_chatgpt_details(sea_animal_name)
-        st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-        st.markdown(f'<div class="header">🌍 Conservation Tips 🌍</div>', unsafe_allow_html=True)
-        st.write(chatgpt_summary)
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.info("Upload an image of a sea animal to get started!")
