@@ -13,8 +13,7 @@ def get_full_name(sea_animal_name):
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"Provide the name of this animal with underscores so that when typed into this link, https://en.wikipedia.org/api/rest_v1/page/summary/, it leads to the correct wiki page for it. Tell me this and do not add anything to your response."},
-            {"role": "assistant", "content": f"The sea animal name is {sea_animal_name}."}
+            {"role": "user", "content": f"Please provide the Wikipedia page name for '{sea_animal_name}' formatted with underscores, so it can be used in the following URL: https://en.wikipedia.org/api/rest_v1/page/summary/."}
         ],
         max_tokens=50
     )
