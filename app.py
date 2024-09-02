@@ -4,11 +4,21 @@ from PIL import Image
 import requests
 import openai
 
+def get_full_name(sea_animal_name):
+    response = openai.ChatCompletion.create(
+        model="gpt-4",  # Specify the correct model
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f"Provide the name of this animal with underscores for the wikipedia page for this animal so for example: loggerhead_sea_turtle, because when typed into a wikipedia link without the page, leads to the page."}
+        ],
+        max_tokens=150
+    )
+    return response['choices'][0]['message']['content'].strip()
 # Initialize the OpenAI API
 openai.api_key = st.secrets["openai_api_key"]
 # Function to get facts from Wikipedia
-def get_wikipedia_summary(sea_animal_name):
-    url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{sea_animal_name}"
+def get_wikipedia_summary(wikiname):
+    url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{wikiname}"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
@@ -49,9 +59,9 @@ if uploaded_file:
     sea_animal = predictions[0]['label'].lower()
 
     st.write(f"Identified as: **{sea_animal}**")
-
+    wikiname = get_full_name(sea_animal_name)
     # Fetch facts from Wikipedia
-    summary = get_wikipedia_summary(sea_animal)
+    summary = get_wikipedia_summary(wikiname)
     st.write(f"**Wikipedia Summary:** {summary}")
     
     # Fetch additional details using ChatGPT
