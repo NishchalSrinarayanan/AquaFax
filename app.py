@@ -18,12 +18,15 @@ def get_wikipedia_summary(sea_animal_name):
 
 # Function to get additional details using ChatGPT API
 def get_chatgpt_details(sea_animal_name):
-    response = openai.Completion.create(
-        engine="gpt-4o-mini",
-        prompt=f"Provide some interesting facts about {sea_animal_name}, wether it is endangered or not, and if the animal is, some conservation tips for regular middle-class people to do at home. Be specific with the conservation tips.",
+    response = openai.ChatCompletion.create(
+        model="gpt-4",  # Specify the correct model
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f"Provide some interesting facts about {sea_animal_name}. wether it is endangered or not, and if the animal is, some conservation tips for regular middle-class people to do at home. Be specific with the conservation tips."}
+        ],
         max_tokens=150
     )
-    return response.choices[0].text.strip()
+    return response['choices'][0]['message']['content'].strip()
 
 # Load a pre-trained image classification model
 classifier = pipeline("image-classification", model="google/vit-base-patch16-224")
