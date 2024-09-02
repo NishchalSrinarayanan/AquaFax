@@ -1,4 +1,4 @@
-import streamlit as st
+
 from transformers import pipeline
 from PIL import Image
 import requests
@@ -43,30 +43,46 @@ def get_chatgpt_details(sea_animal_name):
 # Load image classification model
 classifier = pipeline("image-classification", model="google/vit-base-patch16-224")
 
-# Custom HTML for loading animation
-loading_animation_html = """
+# Custom HTML/CSS/JavaScript for splash animation
+splash_animation_html = """
 <style>
-@keyframes ocean-wave {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
-.loader {
+.splash-container {
     position: relative;
-    width: 100%;
-    height: 100px;
-    overflow: hidden;
+    display: inline-block;
 }
-.loader:before {
-    content: "";
+
+.splash {
     position: absolute;
-    width: 200%;
+    width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, #00bfff 25%, transparent 25%, transparent 50%, #00bfff 50%, #00bfff 75%, transparent 75%, transparent);
-    background-size: 50px 100%;
-    animation: ocean-wave 1s linear infinite;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%);
+    transform: scale(0);
+    opacity: 0.7;
+    pointer-events: none;
+    transition: transform 0.4s, opacity 0.4s;
+}
+
+.splash.active {
+    transform: scale(1);
+    opacity: 0;
 }
 </style>
-<div class="loader"></div>
+<script>
+function addSplashEffect(event) {
+    var splash = document.createElement("div");
+    splash.className = "splash";
+    event.target.appendChild(splash);
+    setTimeout(() => {
+        splash.classList.add("active");
+        setTimeout(() => {
+            event.target.removeChild(splash);
+        }, 400);
+    }, 0);
+}
+document.querySelectorAll(".splash-button").forEach(button => {
+    button.addEventListener("click", addSplashEffect);
+});
+</script>
 """
 
 # Streamlit UI
@@ -111,52 +127,61 @@ st.markdown("""
         font-size: 0.9em;
         color: #696969;
     }
+    .splash-button {
+        position: relative;
+        overflow: hidden;
+        border: 2px solid #1E90FF;
+        background-color: #87CEFA;
+        color: #FFFFFF;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 1em;
+        cursor: pointer;
+        outline: none;
+        margin: 5px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # Display title
 st.markdown('<div class="title">🦑 AquaFax Sea Animal Identifier 🐠</div>', unsafe_allow_html=True)
 
+# Custom splash effect
+components.html(splash_animation_html, height=0, width=0)
+
+# Sidebar with splash effect
 st.sidebar.header("Upload an Image")
 uploaded_file = st.sidebar.file_uploader("Upload an image of a sea animal", type=["jpg", "jpeg", "png"])
 
-if uploaded_file:
-    # Open and display the image
-    image = Image.open(uploaded_file)
-    st.markdown('<div class="image-container">', unsafe_allow_html=True)
-    st.image(image, caption='Uploaded Image', use_column_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+# Button to start processing
+if st.sidebar.button("Process Image", key="process_image", help="Process the uploaded image to identify the sea animal"):
+    if uploaded_file:
+        # Open and display the image
+        image = Image.open(uploaded_file)
+        st.markdown('<div class="image-container">', unsafe_allow_html=True)
+        st.image(image, caption='Uploaded Image', use_column_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Classify the image
-    st.sidebar.text("Classifying image...")
-    predictions = classifier(image)
-    sea_animal_name = predictions[0]['label'].lower()
+        # Classify the image
+        st.sidebar.text("Classifying image...")
+        predictions = classifier(image)
+        sea_animal_name = predictions[0]['label'].lower()
 
-    st.sidebar.text("Fetching information...")
-    
-    # Show loading animation
-    components.html(loading_animation_html, height=100)
+        # Show results
+        st.markdown(f'<div class="subheader">Identified as: **{sea_animal_name.title()}**</div>', unsafe_allow_html=True)
+        st.markdown('<div class="summary-box">', unsafe_allow_html=True)
+        st.markdown(f'<div class="header">🐟 Animal Summary 🐟</div>', unsafe_allow_html=True)
+        wikiname = get_full_name(sea_animal_name)
+        summary = get_wikipedia_summary(wikiname)
+        st.write(summary)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Fetch the Wikipedia-compatible name and summary
-    wikiname = get_full_name(sea_animal_name)
-    summary = get_wikipedia_summary(wikiname)
-    
-    # Hide loading animation and show results
-    st.markdown('<div class="subheader">Identified as: **{sea_animal_name.title()}**</div>', unsafe_allow_html=True)
-    st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-    st.markdown(f'<div class="header">🐟 Animal Summary 🐟</div>', unsafe_allow_html=True)
-    st.write(summary)
-    st.markdown('</div>', unsafe_allow_html=True)
+        # Fetch additional details using ChatGPT
+        chatgpt_summary = get_chatgpt_details(sea_animal_name)
+        st.markdown('<div class="summary-box">', unsafe_allow_html=True)
+        st.markdown(f'<div class="header">🌍 Additional Details and Conservation Tips 🌍</div>', unsafe_allow_html=True)
+        st.write(chatgpt_summary)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Fetch additional details using ChatGPT
-    chatgpt_summary = get_chatgpt_details(sea_animal_name)
-    st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-    st.markdown(f'<div class="header">🌍 Additional Details and Conservation Tips 🌍</div>', unsafe_allow_html=True)
-    st.write(chatgpt_summary)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-else:
-    st.info("Upload an image of a sea animal to get started!")
-
-# Footer
-st.markdown('<div class="footer">Powered by Streamlit, Transformers, and OpenAI</div>', unsafe_allow_html=True)
+    else:
+        st.info("Upload an image of a sea animal to get started!")
