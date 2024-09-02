@@ -4,10 +4,10 @@ from PIL import Image
 import requests
 import openai
 
-# Initialize the OpenAI API key
+
 openai.api_key = st.secrets["openai_api_key"]
 
-# Function to get the formatted Wikipedia page name using ChatGPT
+
 def get_full_name(sea_animal_name):
     response = openai.ChatCompletion.create(
         model="gpt-4",
@@ -19,7 +19,7 @@ def get_full_name(sea_animal_name):
     )
     return response['choices'][0]['message']['content'].strip()
 
-# Function to get facts from Wikipedia
+
 def get_wikipedia_summary(wikiname):
     url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{wikiname}"
     response = requests.get(url)
@@ -29,7 +29,7 @@ def get_wikipedia_summary(wikiname):
     else:
         return "Sorry, I couldn't find information on this sea animal."
 
-# Function to get additional details using ChatGPT
+
 def get_chatgpt_details(sea_animal_name):
     response = openai.ChatCompletion.create(
         model="gpt-4",
@@ -41,13 +41,13 @@ def get_chatgpt_details(sea_animal_name):
     )
     return response['choices'][0]['message']['content'].strip()
 
-# Load a pre-trained image classification model
+
 classifier = pipeline("image-classification", model="google/vit-base-patch16-224")
 
-# Streamlit UI
-st.title("Sea Animal Identifier and Facts Fetcher")
 
-# Upload picture
+st.title("AquaFax Sea Animal Identifier")
+
+
 uploaded_file = st.file_uploader("Upload an image of a sea animal", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
@@ -68,8 +68,8 @@ if uploaded_file:
 
     # Fetch facts from Wikipedia
     summary = get_wikipedia_summary(wikiname)
-    st.write(f"**Wikipedia Summary:** {summary}")
+    st.write(f"**Animal Summary:** {summary}")
     
     # Fetch additional details using ChatGPT
     chatgpt_summary = get_chatgpt_details(sea_animal_name)
-    st.write(f"**Additional Details from ChatGPT:** {chatgpt_summary}")
+    st.write(f"**Additional Details And Conservation Tips:** {chatgpt_summary}")
