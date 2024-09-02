@@ -1,12 +1,13 @@
-import streamlit as st
+
 from transformers import pipeline
 from PIL import Image
 import requests
 import openai
-import streamlit.components.v1 as components
 
+# Set up OpenAI API key
 openai.api_key = st.secrets["openai_api_key"]
 
+# Functions
 def get_full_name(sea_animal_name):
     response = openai.ChatCompletion.create(
         model="gpt-4o-mini",
@@ -38,69 +39,13 @@ def get_chatgpt_details(sea_animal_name):
     )
     return response['choices'][0]['message']['content'].strip()
 
+# Load image classification model
 classifier = pipeline("image-classification", model="google/vit-base-patch16-224")
 
-splash_animation_html = """
-<style>
-.splash-button {
-    position: relative;
-    overflow: hidden;
-    border: 2px solid #1E90FF;
-    background-color: #87CEFA;
-    color: #FFFFFF;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-size: 1em;
-    cursor: pointer;
-    outline: none;
-    margin: 5px;
-    display: inline-block;
-}
-
-.splash-button:focus {
-    outline: none;
-}
-
-.splash {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%);
-    transform: scale(0);
-    opacity: 0.7;
-    pointer-events: none;
-    transition: transform 0.4s, opacity 0.4s;
-}
-
-.splash.active {
-    transform: scale(1);
-    opacity: 0;
-}
-</style>
-<script>
-function addSplashEffect(event) {
-    var button = event.target;
-    if (!button.classList.contains('splash-button')) {
-        button = button.closest('.splash-button');
-    }
-    var splash = document.createElement("div");
-    splash.className = "splash";
-    button.appendChild(splash);
-    setTimeout(() => {
-        splash.classList.add("active");
-        setTimeout(() => {
-            button.removeChild(splash);
-        }, 400);
-    }, 0);
-}
-document.querySelectorAll(".splash-button").forEach(button => {
-    button.addEventListener("click", addSplashEffect);
-});
-</script>
-"""
-
+# Streamlit UI
 st.set_page_config(page_title="AquaFax Sea Animal Identifier", layout="wide")
 
+# Custom CSS for advanced styling
 st.markdown("""
     <style>
     .title {
@@ -142,69 +87,46 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Display title
 st.markdown('<div class="title">🦑 AquaFax Sea Animal Identifier 🐠</div>', unsafe_allow_html=True)
-
-components.html(splash_animation_html, height=0, width=0)
 
 st.sidebar.header("Upload an Image")
 uploaded_file = st.sidebar.file_uploader("Upload an image of a sea animal", type=["jpg", "jpeg", "png"])
 
-col1, col2, col3 = st.sidebar.columns(3)
+if uploaded_file:
+    # Open and display the image
+    image = Image.open(uploaded_file)
+    st.markdown('<div class="image-container">', unsafe_allow_html=True)
+    st.image(image, caption='Uploaded Image', use_column_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-with col1:
-    if st.button("Process Image", key="process_image", help="Classify the uploaded image and get details"):
-        if uploaded_file:
-            image = Image.open(uploaded_file)
-            st.markdown('<div class="image-container">', unsafe_allow_html=True)
-            st.image(image, caption='Uploaded Image', use_column_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+    # Classify the image
+    st.sidebar.text("Classifying image...")
+    predictions = classifier(image)
+    sea_animal_name = predictions[0]['label'].lower()
 
-            st.text("Classifying image...")
-            predictions = classifier(image)
-            sea_animal_name = predictions[0]['label'].lower()
+    st.sidebar.text("Fetching information...")
 
-            st.markdown(f'<div class="subheader">Identified as: **{sea_animal_name.title()}**</div>', unsafe_allow_html=True)
-            st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-            st.markdown(f'<div class="header">🐟 Animal Summary 🐟</div>', unsafe_allow_html=True)
-            wikiname = get_full_name(sea_animal_name)
-            summary = get_wikipedia_summary(wikiname)
-            st.write(summary)
-            st.markdown('</div>', unsafe_allow_html=True)
+    # Display identified sea animal
+    st.markdown(f'<div class="subheader">Identified as: **{sea_animal_name.title()}**</div>', unsafe_allow_html=True)
 
-            chatgpt_summary = get_chatgpt_details(sea_animal_name)
-            st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-            st.markdown(f'<div class="header">🌍 Additional Details and Conservation Tips 🌍</div>', unsafe_allow_html=True)
-            st.write(chatgpt_summary)
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.info("Upload an image of a sea animal to get started!")
+    # Fetch the Wikipedia-compatible name and summary
+    wikiname = get_full_name(sea_animal_name)
+    summary = get_wikipedia_summary(wikiname)
+    st.markdown('<div class="summary-box">', unsafe_allow_html=True)
+    st.markdown(f'<div class="header">🐟 Animal Summary 🐟</div>', unsafe_allow_html=True)
+    st.write(summary)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-with col2:
-    if st.button("Fetch Animal Summary", key="fetch_summary", help="Fetch the Wikipedia summary of the identified animal"):
-        if uploaded_file:
-            image = Image.open(uploaded_file)
-            predictions = classifier(image)
-            sea_animal_name = predictions[0]['label'].lower()
-            wikiname = get_full_name(sea_animal_name)
-            summary = get_wikipedia_summary(wikiname)
-            st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-            st.markdown(f'<div class="header">🐟 Animal Summary 🐟</div>', unsafe_allow_html=True)
-            st.write(summary)
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.info("Upload an image of a sea animal to get started!")
+    # Fetch additional details using ChatGPT
+    chatgpt_summary = get_chatgpt_details(sea_animal_name)
+    st.markdown('<div class="summary-box">', unsafe_allow_html=True)
+    st.markdown(f'<div class="header">🌍 Additional Details and Conservation Tips 🌍</div>', unsafe_allow_html=True)
+    st.write(chatgpt_summary)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-with col3:
-    if st.button("Get Conservation Tips", key="conservation_tips", help="Get conservation tips for the identified animal"):
-        if uploaded_file:
-            image = Image.open(uploaded_file)
-            predictions = classifier(image)
-            sea_animal_name = predictions[0]['label'].lower()
-            chatgpt_summary = get_chatgpt_details(sea_animal_name)
-            st.markdown('<div class="summary-box">', unsafe_allow_html=True)
-            st.markdown(f'<div class="header">🌍 Conservation Tips 🌍</div>', unsafe_allow_html=True)
-            st.write(chatgpt_summary)
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.info("Upload an image of a sea animal to get started!")
+else:
+    st.info("Upload an image of a sea animal to get started!")
 
+# Footer
+st.markdown('<div class="footer">Powered by Streamlit, Transformers, and OpenAI</div>', unsafe_allow_html=True)
